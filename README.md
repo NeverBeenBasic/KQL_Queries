@@ -2,7 +2,7 @@
 
 ## Automated Phishing Response
 
-`scripts/auto_revoke_reset.py` implements an automated workflow for Thinkst Canary phishing alerts. Given a webhook payload containing a *Cloned Site* URL, the script:
+`scripts/Thinkst_Automation.py` implements an automated workflow for Thinkst Canary phishing alerts. Given a webhook payload containing a *Cloned Site* URL, the script:
 
 1. Resolves the cloned host and filters for public, non‑allow‑listed IPv4 addresses.
 2. Adds those addresses to a Conditional Access named location.
@@ -20,7 +20,7 @@
 
 ### Usage
 ```bash
-python scripts/auto_revoke_reset.py --webhook webhook.json \
+python scripts/Thinkst_Automation.py --webhook webhook.json \
     --named-location-name "Phishing - Blocked IPs" --allow 203.0.113.0/24
 ```
 

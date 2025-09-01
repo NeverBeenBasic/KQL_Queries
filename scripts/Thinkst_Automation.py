@@ -19,7 +19,7 @@ Prerequisites
 Example
 -------
 ```bash
-python scripts/auto_revoke_reset.py --webhook webhook.json \
+python scripts/Thinkst_Automation.py --webhook webhook.json \
     --named-location-name "Phishing - Blocked IPs" --allow 203.0.113.0/24
 ```
 
