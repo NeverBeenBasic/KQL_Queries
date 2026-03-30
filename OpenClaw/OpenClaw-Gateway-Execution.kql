@@ -1,0 +1,13 @@
+// Title: OpenClaw AI Agent Gateway Execution
+// Description: Detects execution of the OpenClaw AI agent gateway on corporate endpoints
+// via node.exe with command line arguments associated with the OpenClaw gateway daemon.
+// MITRE: T1059.007 (JavaScript), T1219 (Remote Access Software), T1555.003 (Credentials from Web Browsers)
+// Severity: Medium
+// Author: NeverBeenBasic
+// Date: 2026-03-30
+
+DeviceProcessEvents
+| where Timestamp > ago(1h)
+| where FileName == "node.exe"
+| where ProcessCommandLine has_any ("openclaw.mjs", "openclaw", "gateway run", "gateway --port")
+| project Timestamp, DeviceId, ReportId, DeviceName, AccountName, ProcessCommandLine, InitiatingProcessFileName, FolderPath
