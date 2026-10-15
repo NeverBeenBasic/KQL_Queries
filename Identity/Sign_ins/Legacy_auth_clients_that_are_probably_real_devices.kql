@@ -1,0 +1,13 @@
+// Title: Legacy-auth clients that are probably real devices
+// Category: Identity/Sign-ins
+// Description: Accounts failing legacy auth repeatedly from one or two IPs, which usually means an old phone mail app, printer or scan-to-email device. Find these before blocking legacy auth.
+// Tables: SigninLogs
+
+SigninLogs
+| where TimeGenerated > ago(30d)
+| where UserAgent has "BAV2ROPC" or ClientAppUsed in ("Authenticated SMTP", "Other clients", "IMAP4", "POP3")
+| summarize Attempts = count(), IPs = dcount(IPAddress), IPList = make_set(IPAddress, 5),
+            Clients = make_set(ClientAppUsed, 5), LastSeen = max(TimeGenerated)
+    by UserPrincipalName
+| where IPs <= 2 and Attempts >= 10
+| order by Attempts desc

@@ -1,0 +1,12 @@
+// Title: Who logged on to a server during an alert window
+// Category: Endpoint/Logons
+// Description: All logons to one device in a time window, grouped by account, logon type and source. Use it on servers and domain controllers to see who else was there when something fired.
+// Tables: DeviceLogonEvents
+
+let Device = "<device name>";
+DeviceLogonEvents
+| where Timestamp between (datetime(2026-01-01T00:00:00Z) .. datetime(2026-01-01T01:00:00Z))
+| where DeviceName startswith Device
+| summarize Logons = count(), First = min(Timestamp), Last = max(Timestamp)
+    by ActionType, LogonType, AccountDomain, AccountName, RemoteIP, RemoteDeviceName
+| order by First asc

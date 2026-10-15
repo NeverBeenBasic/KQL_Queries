@@ -1,0 +1,17 @@
+// Title: PowerShell Add-Type compiles by folder pattern
+// Category: Endpoint/Process
+// Description: Counts C# compiles (Add-Type) on a host from the cvtres.exe child process and groups them by working folder. Tells you whether a randomly named DLL in a Temp GUID folder is routine automation or an outlier.
+// Tables: DeviceProcessEvents
+// Mitre: T1027.004
+
+let Device = "<device name>";
+DeviceProcessEvents
+| where Timestamp > ago(30d)
+| where DeviceName startswith Device
+| where FileName =~ "cvtres.exe"
+| extend Folder = case(
+    InitiatingProcessCommandLine has "ansible-moduletmp", "ansible-moduletmp",
+    InitiatingProcessCommandLine matches regex @"Temp\\[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\", "plain-GUID",
+    "other")
+| summarize Compiles = count(), Days = dcount(bin(Timestamp, 1d)), Accounts = make_set(AccountName, 5) by Folder
+| order by Compiles desc

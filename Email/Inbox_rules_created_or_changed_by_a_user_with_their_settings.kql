@@ -1,0 +1,18 @@
+// Title: Inbox rules created or changed by a user, with their settings
+// Category: Email
+// Description: Lists a user's inbox rule changes with the parameters that matter for BEC: who the rule targets, where mail goes, and whether it forwards or deletes.
+// Tables: OfficeActivity
+// Mitre: T1564.008
+
+let User = "user@contoso.com";
+OfficeActivity
+| where TimeGenerated > ago(30d)
+| where Operation in ("New-InboxRule", "Set-InboxRule", "Enable-InboxRule", "UpdateInboxRules")
+| where UserId =~ User
+| extend P = parse_json(Parameters)
+| mv-apply p = P on (summarize Params = make_bag(bag_pack(tostring(p.Name), tostring(p.Value))))
+| project TimeGenerated, UserId, Operation, ClientIP,
+          RuleName = tostring(Params.Name), From = tostring(Params.From), MoveToFolder = tostring(Params.MoveToFolder),
+          ForwardTo = tostring(Params.ForwardTo), RedirectTo = tostring(Params.RedirectTo),
+          DeleteMessage = tostring(Params.DeleteMessage), SubjectContainsWords = tostring(Params.SubjectContainsWords)
+| order by TimeGenerated desc

@@ -1,0 +1,25 @@
+// Title: Defender incident ID to alerts and evidence
+// Category: Investigation-Patterns
+// Description: Resolves the number on a Defender portal incident page to its alerts and evidence through SecurityIncident and SecurityAlert. SecurityAlert.VendorOriginalId needs a "da" prefix to match AlertEvidence.AlertId.
+// Tables: SecurityIncident, SecurityAlert, AlertEvidence
+
+let portalId = "<number from the incident page>";
+let incident = SecurityIncident
+    | where TimeGenerated > ago(30d)
+    | where ProviderIncidentId == portalId or tostring(IncidentNumber) == portalId
+    | summarize arg_max(TimeGenerated, *) by IncidentName;
+let alertIds = incident | mv-expand AlertId = AlertIds to typeof(string) | distinct AlertId;
+SecurityAlert
+| where TimeGenerated > ago(30d)
+| where SystemAlertId in (alertIds)
+| summarize arg_max(TimeGenerated, *) by SystemAlertId
+| project SystemAlertId, VendorOriginalId, AlertName, ProductName, AlertSeverity, StartTime, CompromisedEntity, Entities
+| extend DefenderAlertId = iff(VendorOriginalId startswith "da", VendorOriginalId, strcat("da", VendorOriginalId))
+| join kind=leftouter (
+    AlertEvidence
+    | where Timestamp > ago(30d)
+    | project AlertId, EntityType, EvidenceRole, DeviceName, AccountUpn, FileName, FolderPath, SHA256,
+              ThreatFamily, ProcessCommandLine, RemoteIP, RemoteUrl, AdditionalFields
+  ) on $left.DefenderAlertId == $right.AlertId
+| project StartTime, AlertName, ProductName, AlertSeverity, VendorOriginalId, EntityType, EvidenceRole,
+          DeviceName, AccountUpn, FileName, FolderPath, SHA256, ThreatFamily, ProcessCommandLine, RemoteIP, RemoteUrl, Entities

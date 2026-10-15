@@ -1,0 +1,13 @@
+// Title: User sign-in baseline by country, IP and device
+// Category: Identity/Sign-ins
+// Description: 30 days of a user's sign-ins grouped by location, IP and device, oldest first. Answers whether a location or device in an alert is new or normal for that user.
+// Tables: SigninLogs
+
+let User = "user@contoso.com";
+SigninLogs
+| where TimeGenerated > ago(30d)
+| where UserPrincipalName =~ User
+| extend LD = parse_json(LocationDetails), DD = parse_json(DeviceDetail)
+| summarize SignIns = count(), Days = dcount(bin(TimeGenerated, 1d)), First = min(TimeGenerated), Last = max(TimeGenerated)
+    by Country = tostring(LD.countryOrRegion), IPAddress, Device = tostring(DD.displayName), Compliant = tostring(DD.isCompliant)
+| order by First asc

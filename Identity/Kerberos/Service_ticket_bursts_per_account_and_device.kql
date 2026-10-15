@@ -1,0 +1,19 @@
+// Title: Service-ticket bursts per account and device
+// Category: Identity/Kerberos
+// Description: Rebuilds a typical Kerberoast rule's trigger (distinct SPNs per 2-minute bin) and splits out non-HTTP SPNs, so you can see whether bursts are WinRM fan-out or something worse.
+// Tables: IdentityLogonEvents
+// Mitre: T1558.003
+
+IdentityLogonEvents
+| where Timestamp > ago(30d)
+| where ActionType == "LogonSuccess" and Protocol == "Kerberos"
+| extend AF = parse_json(AdditionalFields)
+| mv-expand SPN = AF.Spns
+| extend SPN = tostring(SPN)
+| where isnotempty(SPN)
+| summarize SPNs = dcount(SPN), NonHttpSPNs = dcountif(SPN, not(SPN startswith "HTTP/"))
+    by AccountName, DeviceName, Bin = bin(Timestamp, 2m)
+| where SPNs >= 70
+| summarize Bins = count(), MaxSPNs = max(SPNs), MaxNonHttpSPNs = max(NonHttpSPNs), First = min(Bin), Last = max(Bin)
+    by AccountName, DeviceName
+| order by MaxNonHttpSPNs desc

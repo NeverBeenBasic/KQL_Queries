@@ -1,0 +1,19 @@
+// Title: Legacy authentication attempts and successes by user
+// Category: Identity/Sign-ins
+// Description: Every legacy (basic) auth sign-in over 30 days, per user, with successes counted. Legacy auth skips MFA, so any success is a priority.
+// Tables: SigninLogs, AADNonInteractiveUserSignInLogs
+// Mitre: T1110.003
+
+let LookBack = 30d;
+union
+    (SigninLogs
+     | where TimeGenerated > ago(LookBack)
+     | project TimeGenerated, UserPrincipalName, IPAddress, ResultType = tostring(ResultType), AppDisplayName, ClientAppUsed, UserAgent),
+    (AADNonInteractiveUserSignInLogs
+     | where TimeGenerated > ago(LookBack)
+     | project TimeGenerated, UserPrincipalName, IPAddress, ResultType = tostring(ResultType), AppDisplayName, ClientAppUsed, UserAgent)
+| where UserAgent has "BAV2ROPC" or ClientAppUsed in ("Authenticated SMTP", "Other clients", "IMAP4", "POP3")
+| summarize Attempts = count(), Successes = countif(ResultType == "0"), DistinctIPs = dcount(IPAddress),
+            ResultCodes = make_set(ResultType, 10), Apps = make_set(AppDisplayName, 5)
+    by UserPrincipalName
+| order by Successes desc, Attempts desc

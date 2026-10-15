@@ -1,0 +1,11 @@
+// Title: Check for missing process-creation telemetry
+// Category: Endpoint/Process
+// Description: Every csc.exe compile launches cvtres.exe, so their counts should be close. A large gap means parent process rows are missing on that host; count from the child process and recover parents from the InitiatingProcess columns.
+// Tables: DeviceProcessEvents
+
+let Device = "<device name>";
+DeviceProcessEvents
+| where Timestamp > ago(30d)
+| where DeviceName startswith Device
+| where FileName in~ ("csc.exe", "cvtres.exe")
+| summarize Total = count(), Days = dcount(bin(Timestamp, 1d)) by FileName

@@ -1,0 +1,14 @@
+// Title: Device antivirus timeline
+// Category: Endpoint/Antivirus
+// Description: Antivirus detections and related events on one device, with the process that triggered each. AntivirusDetection means flagged; AntivirusReport is scan telemetry only.
+// Tables: DeviceEvents
+
+let Device = "<device name>";
+DeviceEvents
+| where Timestamp > ago(7d)
+| where DeviceName startswith Device
+| where ActionType in ("AntivirusDetection", "AntivirusReport", "SmartScreenAppWarning", "AsrUntrustedExecutableBlocked")
+| extend AF = parse_json(AdditionalFields)
+| project Timestamp, ActionType, ThreatName = tostring(AF.ThreatName), WasRemediated = tostring(AF.WasRemediated),
+          FileName, FolderPath, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessAccountName
+| order by Timestamp asc

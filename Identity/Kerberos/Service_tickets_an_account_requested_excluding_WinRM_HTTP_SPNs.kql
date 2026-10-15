@@ -1,0 +1,16 @@
+// Title: Service tickets an account requested, excluding WinRM HTTP SPNs
+// Category: Identity/Kerberos
+// Description: Kerberoast triage. Admin tools that use WinRM request an HTTP/<host> ticket per target (computer accounts, not crackable). What's left are SPNs that may belong to user or service accounts, which are the real Kerberoasting targets.
+// Tables: IdentityLogonEvents
+// Mitre: T1558.003
+
+let Account = "username";
+IdentityLogonEvents
+| where Timestamp > ago(7d)
+| where AccountName =~ Account
+| extend AF = parse_json(AdditionalFields)
+| mv-expand SPN = AF.Spns
+| extend SPN = tostring(SPN)
+| where isnotempty(SPN) and not(SPN startswith "HTTP/")
+| summarize Requests = count(), Days = dcount(bin(Timestamp, 1d)), Devices = make_set(DeviceName, 5) by SPN
+| order by Requests desc

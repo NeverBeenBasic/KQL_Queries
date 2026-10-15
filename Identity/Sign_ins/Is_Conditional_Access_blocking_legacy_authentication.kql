@@ -1,0 +1,11 @@
+// Title: Is Conditional Access blocking legacy authentication
+// Category: Identity/Sign-ins
+// Description: Splits legacy-auth attempts by result and Conditional Access status. 53003 means CA blocked it; notApplied with 50053/50126 means attempts are reaching password validation.
+// Tables: SigninLogs
+// Mitre: T1110.003
+
+SigninLogs
+| where TimeGenerated > ago(7d)
+| where UserAgent has "BAV2ROPC" or ClientAppUsed in ("Authenticated SMTP", "Other clients", "IMAP4", "POP3")
+| summarize Attempts = count() by ResultType, ResultDescription, ConditionalAccessStatus
+| order by Attempts desc

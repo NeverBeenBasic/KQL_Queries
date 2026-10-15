@@ -1,0 +1,20 @@
+// Title: Indicator hunt across endpoints and email
+// Category: Investigation-Patterns
+// Description: One query that checks a list of domains against device network connections, email URL clicks and delivered email URLs for the last 30 days.
+// Tables: DeviceNetworkEvents, UrlClickEvents, EmailUrlInfo
+
+let domains = dynamic(["example-bad-domain.com", "another-bad-domain.net"]);
+union
+  (DeviceNetworkEvents
+   | where Timestamp > ago(30d) and RemoteUrl has_any (domains)
+   | summarize Count = count(), First = min(Timestamp), Last = max(Timestamp), Urls = make_set(RemoteUrl, 10)
+             by Source = "Network", Who = DeviceName, Process = InitiatingProcessFileName),
+  (UrlClickEvents
+   | where Timestamp > ago(30d) and Url has_any (domains)
+   | summarize Count = count(), First = min(Timestamp), Last = max(Timestamp), Urls = make_set(Url, 10)
+             by Source = "EmailClick", Who = AccountUpn, Process = Workload),
+  (EmailUrlInfo
+   | where Timestamp > ago(30d) and UrlDomain has_any (domains)
+   | summarize Count = count(), First = min(Timestamp), Last = max(Timestamp), Urls = make_set(Url, 10)
+             by Source = "EmailDelivered", Who = "mailflow", Process = UrlDomain)
+| order by Count desc
